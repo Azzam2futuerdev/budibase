@@ -83,13 +83,18 @@ export async function search(
         options.fields?.filter(f => tableFields.includes(f)) ?? tableFields,
         table
       )
+
       options.query = removeInvalidFilters(options.query, queriableFields)
     }
     if (options.baseQuery) {
-      options.query = {
-        $and: {
-          conditions: [options.baseQuery, options.query],
-        },
+      if (options.query) {
+        options.query = {
+          $and: {
+            conditions: [options.baseQuery, options.query],
+          },
+        }
+      } else {
+        options.query = options.baseQuery
       }
     }
 
