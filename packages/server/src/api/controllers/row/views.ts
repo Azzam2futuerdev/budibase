@@ -7,6 +7,7 @@ import {
   RowSearchParams,
   SearchFilterKey,
   LogicalOperator,
+  SearchFilters,
 } from "@budibase/types"
 import { dataFilters } from "@budibase/shared-core"
 import sdk from "../../../sdk"
@@ -36,6 +37,7 @@ export async function searchView(
   // We prevent searching on any fields that are saved as part of the query, as
   // that could let users find rows they should not be allowed to access.
   let query = dataFilters.buildQuery(view.query || [])
+  let viewQuery: SearchFilters | undefined
   if (body.query) {
     // Delete extraneous search params that cannot be overridden
     delete body.query.onEmptyFilter
@@ -60,11 +62,7 @@ export async function searchView(
         })
       })
     } else {
-      query = {
-        $and: {
-          conditions: [query, body.query],
-        },
-      }
+      viewQuery = query
     }
   }
 
@@ -73,13 +71,22 @@ export async function searchView(
   const enrichedQuery = await enrichSearchContext(query, {
     user: sdk.users.getUserContextBindings(ctx.user),
   })
+  if (viewQuery) {
+    viewQuery = await enrichSearchContext(viewQuery, {
+      user: sdk.users.getUserContextBindings(ctx.user),
+    })
+  }
 
   const searchOptions: RequiredKeys<SearchViewRowRequest> &
     RequiredKeys<
-      Pick<RowSearchParams, "tableId" | "viewId" | "query" | "fields">
+      Pick<
+        RowSearchParams,
+        "tableId" | "viewId" | "query" | "fields" | "baseQuery"
+      >
     > = {
     tableId: view.tableId,
     viewId: view.id,
+    baseQuery: viewQuery,
     query: enrichedQuery,
     fields: viewFields,
     ...getSortOptions(body, view),

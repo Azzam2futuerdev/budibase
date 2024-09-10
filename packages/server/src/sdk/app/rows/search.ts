@@ -85,6 +85,13 @@ export async function search(
       )
       options.query = removeInvalidFilters(options.query, queriableFields)
     }
+    if (options.baseQuery) {
+      options.query = {
+        $and: {
+          conditions: [options.baseQuery, options.query],
+        },
+      }
+    }
 
     let result: SearchResponse<Row>
     if (isExternalTable) {
